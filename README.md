@@ -3,7 +3,7 @@
 **Abstract:** High-nucleic acid (HNA) and low-nucleic acid (LNA) bacteria are flow cytometry (FCM) functional groups that are ubiquitous across aquatic systems. Correlations between bacterial heterotrophic production and HNA cells suggest that HNA cells are more active. However, the composition of bacterial taxa within HNA and LNA groups is not well understood. Here, we used a machine learning based variable selection strategy, called the Randomized Lasso (RL), to associate bacterial representatives with the HNA and LNA groups. FCM and 16S rRNA gene sequencing data were collected across three freshwater lake ecosystems and heterotrophic productivity measurements were gathered in one. There was a strong association between bacterial heterotrophic production and HNA cell abundances (R2 = 0.65), and not with the more dominant LNA cells. While the RL resulted in models able to predict HNA and LNA cell abundances at all taxonomic classification levels, they performed best at the OTU level. Selected OTUs were mostly unique to each lake ecosystem indicating high system specificity. Some OTUs were selected for both FCM functional groups indicating either within-OTU functional diversification or plasticity that allows transitioning between functional states. Our approach allows for categorizing OTUs into FCM functional groups and thus identification of the more active taxa in aquatic systems.
 
 
-## [Link to Analysis for Figures 1, 4, 5, and Phylogenetic Signal](http://htmlpreview.github.com/?https://github.com/rprops/HNA_LNA_productivity/blob/master/Analysis.html) 
+## [Link to Analysis for Figures 1, 4, 5, and Phylogenetic Signal](Analysis.html) 
 **NOTE:** This file needs to be downloaded and opened in a browser
 
 ## Variable selection
