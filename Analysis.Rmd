@@ -259,7 +259,7 @@ LNA_vs_prod <- ggplot(muskegon, aes(x = LNA.cells, y = tot_bacprod)) +
   geom_errorbar(aes(ymin = tot_bacprod - SD_tot_bacprod, max = tot_bacprod + SD_tot_bacprod), color = "grey", alpha = 0.8) + 
   geom_point(size = 2.5, shape = 22, fill = "darkgoldenrod1") + 
   labs(y = "Bacterial Production \n (μg C/L/day)", x = "LNA Cell Density \n(cells/mL)") +
-  geom_smooth(method = "lm", se = FALSE, linetype = "longdash", color = "darkgoldenrod1") + 
+  #geom_smooth(method = "lm", se = FALSE, linetype = "longdash", color = "darkgoldenrod1") + 
   annotate("text", x=2.75e+06, y=60, label=lm_LNA_stats, parse = TRUE, color = "red", size = 3) +
   mytheme
 
