@@ -229,6 +229,7 @@ ggplot(df_cells, aes(x = FCM_type, y = num_cells, fill = Lake, color = Lake, sha
 ########################  Analysis of HNA/LNA/Total Cells vs Total Productivity
 # 1. Run the linear model 
 lm_HNA <- lm(tot_bacprod ~ HNA.cells, data = muskegon)
+summary(lm_HNA) # Linear model for HNA cells vs bacterial production 
 
 ## 2. Extract the R2 and p-value from the linear model: 
 lm_HNA_stats <- paste("atop(R^2 ==", round(summary(lm_HNA)$adj.r.squared, digits = 2), ",",
@@ -248,6 +249,7 @@ HNA_vs_prod <- ggplot(muskegon, aes(x = HNA.cells, y = tot_bacprod)) +
 
 # 1. Run the linear model 
 lm_LNA <- lm(tot_bacprod ~ LNA.cells, data = muskegon)
+summary(lm_LNA) # Linear model for LNA cells vs bacterial production 
 
 ## 2. Extract the R2 and p-value from the linear model: 
 lm_LNA_stats <- paste("atop(R^2 ==", round(summary(lm_LNA)$adj.r.squared, digits = 3), ",",
@@ -265,6 +267,7 @@ LNA_vs_prod <- ggplot(muskegon, aes(x = LNA.cells, y = tot_bacprod)) +
 
 # 1. Run the linear model 
 lm_total <- lm(tot_bacprod ~ Total.cells, data = muskegon)
+summary(lm_total) # Linear model for total cells vs bacterial production 
 
 ## 2. Extract the R2 and p-value from the linear model: 
 lm_total_stats <- paste("atop(R^2 ==", round(summary(lm_total)$adj.r.squared, digits = 2), ",",
@@ -334,7 +337,7 @@ legend2 <- get_legend(p2 + theme(legend.position = "right",
   guides(fill = guide_legend(override.aes = list(size=3.5))))
 
 # place the legends
-legend_positions <- plot_grid(legend1, legend2, nrow = 2, ncol = 1)
+legend_positions <- plot_grid(legend2, legend1, nrow = 2, ncol = 1)
 
 # Place the legends next to figure 1A
 row1 <- plot_grid(NULL, p2, legend_positions, 

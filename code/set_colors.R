@@ -1,7 +1,7 @@
 ## Purpose:  Set the global colors and shapes based on important factors
 ## Author: Marian L. Schmidt 
  
-
+ 
 # Set global colors for the different taxonomic phyla
 phylum_colors <- c( 
   Acidobacteria = "navy", 
@@ -13,7 +13,7 @@ phylum_colors <- c(
   Bacteroidetes = "cornflowerblue", 
   Betaproteobacteria = "plum1", 
   "Candidate_division_OP3" = "slategray3",
-  #Chlamydiae = "#A20E42",
+  Chlamydiae = "#A20E42",
   Chlorobi="magenta", 
   Chloroflexi="goldenrod1", 
   Cyanobacteria = "limegreen",
@@ -23,7 +23,7 @@ phylum_colors <- c(
   Firmicutes = "papayawhip",
   Gammaproteobacteria = "cyan",
   Gemmatimonadetes = "yellow",
-  #Gracilibacteria = "#FD823F",
+  Gracilibacteria = "darkgreen",
   #JTB23 = "#B5D6AA",
   Latescibacteria = "salmon4",
   Lentisphaerae = "palevioletred1",

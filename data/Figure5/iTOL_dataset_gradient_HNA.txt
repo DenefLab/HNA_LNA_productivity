@@ -31,10 +31,10 @@ COLOR,#00688B
 #5: left pointing triangle
 #6: checkmark
 
-#LEGEND_TITLE Dataset_legend
-#LEGEND_SHAPES 1 2 3
-#LEGEND_COLORS #ff0000 #00ff00 #0000ff
-#LEGEND_LABELS value1 value2 value3
+#LEGEND_TITLE HNA-RLscore
+#LEGEND_SHAPES 1 
+#LEGEND_COLORS #00688B #ffffff 
+#LEGEND_LABELS 0.382 0.092
 
 #=================================================================#
 #     all other optional settings can be set or changed later     #

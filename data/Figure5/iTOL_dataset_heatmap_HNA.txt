@@ -1,0 +1,347 @@
+DATASET_HEATMAP
+#In heatmaps, each ID is associated to multiple numeric values, which are displayed as a set of colored boxes defined by a color gradient
+#lines starting with a hash are comments and ignored during parsing
+#=================================================================#
+#                    MANDATORY SETTINGS                           #
+#=================================================================#
+#select the separator which is used to delimit the data below (TAB,SPACE or COMMA).This separator must be used throughout this file (except in the SEPARATOR line, which uses space).
+#SEPARATOR TAB
+#SEPARATOR SPACE
+SEPARATOR COMMA
+
+#label is used in the legend table (can be changed later)
+DATASET_LABEL,HNA-Score
+
+#dataset color (can be changed later)
+COLOR,#00688B
+
+#define labels for each individual field column
+FIELD_LABELS,  
+
+#=================================================================#
+#                    OPTIONAL SETTINGS                            #
+#=================================================================#
+
+
+#Heatmaps can have an optional Newick formatted tree assigned. Its leaf IDs must exactly match the dataset FIELD_LABELS.
+#The tree will be used to sort the dataset fields, and will be displayed above the dataset. It can have branch lengths defined.
+#All newlines and spaces should be stripped from the tree, and COMMA cannot be used as the dataset separator if a FIELD_TREE is provided.
+#FIELD_TREE (((f1:0.2,f5:0.5):1,(f2:0.2,f3:0.3):1.2):0.5,(f4:0.1,f6:0.5):0.8):1;
+
+#each dataset can have a legend, which is defined below
+#for each row in the legend, there should be one shape, color and label
+#shape should be a number between 1 and 6:
+#1: square
+#2: circle
+#3: star
+#4: right pointing triangle
+#5: left pointing triangle
+#6: checkmark
+
+#LEGEND_TITLE,Dataset legend
+#LEGEND_SHAPES,1,2,3
+#LEGEND_COLORS,#ff0000,#00ff00,#0000ff
+#LEGEND_LABELS,value1,value2,value3
+
+#=================================================================#
+#     all other optional settings can be set or changed later     #
+#           in the web interface (under 'Datasets' tab)           #
+#=================================================================#
+
+#left margin, used to increase/decrease the spacing to the next dataset. Can be negative, causing datasets to overlap.
+#MARGIN 0
+
+#width of the individual boxes
+STRIP_WIDTH,75
+
+#always show internal values; if set, values associated to internal nodes will be displayed even if these nodes are not collapsed. It could cause overlapping in the dataset display.
+#SHOW_INTERNAL 0
+
+#if a FIELD_TREE is present, it can be hidden by setting this option to 0
+#SHOW_TREE 1
+
+#define the color for the NULL values in the dataset. Use the letter X in the data to define the NULL values
+COLOR_NAN,#ffffff
+
+#automatically create and display a legend based on the color gradients and values defined below
+AUTO_LEGEND,1
+
+#define the heatmap gradient colors. Values in the dataset will be mapped onto the corresponding color gradient.
+COLOR_MIN,#daf5ff
+COLOR_MAX,#00688B
+
+#you can specify a gradient with three colors (e.g red to yellow to green) by setting 'USE_MID_COLOR' to 1, and specifying the midpoint color
+#USE_MID_COLOR 1
+#COLOR_MID #ffff00
+
+#By default, color gradients will be calculated based on dataset values. You can force different values to use in the calculation by setting the values below:
+#USER_MIN_VALUE 0
+#USER_MID_VALUE 500
+#USER_MAX_VALUE 1000
+
+#Internal tree nodes can be specified using IDs directly, or using the 'last common ancestor' method described in iTOL help pages
+#=================================================================#
+#       Actual data follows after the "DATA" keyword              #
+#=================================================================#
+DATA
+
+#OTU,HNA_score
+Otu000173,0.348
+Otu000244,0.306
+Otu000187,0.122
+Otu000313,0.27
+Otu000060,0.184
+Otu000521,0.122
+Otu000293,0.214
+Otu000167,0.096
+Otu000271,0.098
+Otu000029,0.253
+Otu000614,0.336
+Otu000412,0.312
+Otu000038,0.378
+Otu000175,0.108
+Otu000279,0.264
+Otu001267,0.254
+Otu000262,0.16
+Otu000058,0.168
+Otu000226,0.098
+Otu000712,0.098
+Otu000264,0.332
+Otu000317,0.148
+Otu000246,0.281
+Otu000905,0.206
+Otu000267,0.142
+Otu000136,0.178
+Otu000210,0.1
+Otu001846,0.202
+Otu000409,0.114
+Otu000044,0.228
+Otu001126,0.126
+Otu000263,0.166
+Otu000242,0.308
+Otu000870,0.246
+Otu000756,0.184
+Otu000190,0.124
+Otu000487,0.31
+Otu000059,0.185
+Otu001142,0.24
+Otu000088,0.31
+Otu000469,0.142
+Otu000020,0.106
+Otu000827,0.092
+Otu001520,0.14
+Otu000624,0.172
+Otu000399,0.124
+Otu001086,0.102
+Otu000771,0.144
+Otu000076,0.096
+Otu000344,0.098
+Otu000319,0.21
+Otu000519,0.092
+Otu000149,0.12
+Otu000192,0.207
+Otu000010,0.144
+Otu000001,0.237333333
+Otu001464,0.138
+Otu000043,0.152
+Otu001327,0.15
+Otu001602,0.208
+Otu000837,0.134
+Otu000182,0.234
+Otu000095,0.152
+Otu000590,0.096
+Otu000112,0.132
+Otu000701,0.148
+Otu000018,0.098
+Otu000131,0.124
+Otu001136,0.122
+Otu000171,0.134
+Otu001298,0.162
+Otu001691,0.112
+Otu000631,0.13
+Otu000253,0.092
+Otu000449,0.13
+Otu001183,0.125
+Otu000418,0.104
+Otu001476,0.096
+Otu000581,0.122
+Otu002142,0.18
+Otu000888,0.102
+Otu000026,0.164
+Otu001078,0.116
+Otu000063,0.092
+Otu000402,0.13
+Otu000141,0.108
+Otu000673,0.132
+Otu001124,0.174
+Otu000708,0.162
+Otu001767,0.092
+Otu000459,0.13
+Otu000613,0.116
+Otu001368,0.102
+Otu000885,0.156
+Otu000894,0.128
+Otu000283,0.102
+Otu002831,0.132
+Otu000655,0.122
+Otu000615,0.126
+Otu000005,X
+Otu000113,X
+Otu000027,X
+Otu000030,0.178
+Otu000682,X
+Otu000379,X
+Otu001580,X
+Otu000277,X
+Otu000160,X
+Otu000471,X
+Otu000517,X
+Otu000050,X
+Otu000193,X
+Otu000099,X
+Otu000203,X
+Otu000172,X
+Otu000456,X
+Otu002374,X
+Otu000218,X
+Otu000985,X
+Otu001273,X
+Otu000893,X
+Otu000259,X
+Otu000223,X
+Otu000240,X
+Otu001210,X
+Otu000749,X
+Otu000898,X
+Otu001329,X
+Otu000163,X
+Otu000408,X
+Otu000460,X
+Otu000144,X
+Otu000014,X
+Otu000090,X
+Otu000917,X
+Otu000536,X
+Otu000159,X
+Otu000154,X
+Otu000796,X
+Otu000425,X
+Otu001018,X
+Otu000132,X
+Otu001366,X
+Otu000681,X
+Otu000392,X
+Otu000422,X
+Otu001664,X
+Otu000084,X
+Otu001092,0.276
+Otu000363,0.152
+Otu000369,0.382
+Otu000022,0.23
+Otu000717,0.274
+Otu001668,0.362
+Otu000619,0.196
+Otu001821,0.15
+Otu000151,0.132
+Otu000664,0.304
+Otu002159,0.186
+Otu000250,0.202
+Otu001087,0.24
+Otu000580,0.224
+Otu000571,0.19
+Otu000973,0.132
+Otu000792,0.376
+Otu000282,0.234
+Otu000321,0.14
+Otu000803,0.21
+Otu001288,0.26
+Otu000526,0.148
+Otu000227,0.226
+Otu000574,0.154
+Otu001038,0.14
+Otu000346,0.26
+Otu001656,0.21
+Otu001533,0.222
+Otu000285,0.19
+Otu001552,0.142
+Otu001863,0.188
+Otu000168,0.194
+Otu001140,0.21
+Otu000389,0.26
+Otu000711,0.164
+Otu000638,0.154
+Otu000441,0.16
+Otu001107,0.142
+Otu000207,0.222
+Otu000511,0.316
+Otu000247,0.142
+Otu000745,0.134
+Otu000329,0.152
+Otu001498,0.178
+Otu000066,0.158
+Otu000523,X
+Otu000120,X
+Otu000269,X
+Otu000053,X
+Otu001301,X
+Otu000108,X
+Otu000067,X
+Otu000307,X
+Otu000501,X
+Otu000637,X
+Otu001215,X
+Otu000555,X
+Otu000006,X
+Otu002163,X
+Otu001341,X
+Otu001414,X
+Otu000582,X
+Otu000297,X
+Otu000650,X
+Otu000140,X
+Otu000378,X
+Otu000093,X
+Otu000274,X
+Otu000597,X
+Otu000105,X
+Otu000660,X
+Otu000189,X
+Otu001643,X
+Otu001134,X
+Otu002185,X
+Otu000073,X
+Otu001709,X
+Otu000706,X
+Otu001250,X
+Otu000222,X
+Otu000315,X
+Otu000311,X
+Otu000856,X
+Otu000358,X
+Otu001793,X
+Otu001175,X
+Otu000156,X
+Otu000579,X
+Otu000680,X
+Otu001645,X
+Otu000720,X
+Otu000522,X
+Otu000401,X
+Otu001118,X
+Otu002596,X
+Otu002082,X
+Otu001707,X
+Otu000634,X
+Otu000216,0.264
+Otu000025,0.362
+Otu000081,0.356
+Otu000359,0.288
+Otu000539,0.264
+Otu001568,0.288
+Otu000249,0.358
+Otu000225,0.26
+Otu000330,0.274
+Otu001497,0.26
+Otu000540,X
+Otu001300,X
+

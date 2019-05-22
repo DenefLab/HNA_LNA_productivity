@@ -1,0 +1,712 @@
+---
+title: "WGCNA Tutorial"
+author: "Marian L Schmidt"
+date: "`r format(Sys.time(), '%Y %B, %d')`"
+output:
+  html_document:
+    code_folding: hide
+    highlight: default
+    keep_md: no
+    theme: journal
+    toc: yes
+    toc_float:  
+      collapsed: no
+      smooth_scroll: yes
+      toc_depth: 3
+    number_sections: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE)
+```
+
+
+
+# Data Input/Cleaning
+
+[Data Input & Cleaning Tutorial Here](https://horvath.genetics.ucla.edu/html/CoexpressionNetwork/Rpackages/WGCNA/Tutorials/FemaleLiver-01-dataInput.pdf)
+
+## Download Packages
+
+```{r packages, message = FALSE, warning = FALSE}
+# Install Packages
+#install.packages("HelpersMG")
+#install.packages("WGCNA")
+
+# The GO.db package will not let me load WGCNA, so let's download it
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+#    install.packages("BiocManager")
+#BiocManager::install("GO.db", version = "3.8")
+
+# Load the packages
+library(HelpersMG)
+library(WGCNA)
+library(tidyverse)
+library(phyloseq)
+
+# Set the working directory
+current_directory <- getwd()
+paste("Working in directory:", current_directory)
+```
+
+
+## Load Data
+```{r load-data}
+# Load data
+load("data/Chloroplasts_removed/ByLake_Filtering/5in10/muskegon/muskegon_5in10_physeqs.RData")
+rare_muskegon_physeq_5in10_abs
+
+# The following setting is important, do not omit.
+options(stringsAsFactors = FALSE)
+
+# Prepare CLR transformed OTU Table 
+clr_otu <- read.csv("data/Chloroplasts_removed/ByLake_Filtering/5in10/muskegon/muskegon_clr_otu_5in10.csv") %>%
+  tibble::column_to_rownames(var = "X") 
+# Prepare Taxonomy Table 
+clr_tax <- tax_table(rare_muskegon_physeq_5in10_abs)
+# Prepare Metadata file 
+clr_metadata <- 
+  sample_data(rare_muskegon_physeq_5in10_abs) %>%
+  mutate(norep_filter_name = paste(substr(Sample_16S, 1,4), substr(Sample_16S, 6, 9), sep=""),
+         # duplicate Sample_16S column to move it to the rownames
+         names = Sample_16S) %>%
+  tibble::column_to_rownames(var = "names") 
+
+# Create the phyloseq object
+clr_physeq <- merge_phyloseq(otu_table(clr_otu, taxa_are_rows = FALSE), clr_tax, sample_data(clr_metadata))
+
+# Read in the producutivity data
+prod_data <- read.csv("data/production_data.csv") %>%
+  dplyr::filter(fraction == "Free" & limnion == "Surface") %>%  # Select only rows that are free-living
+  dplyr::select(names, tot_bacprod, SD_tot_bacprod) %>%         # Select relevant columns for total productivity
+  mutate(tot_bacprod = round(tot_bacprod, digits = 2),          # Round to 2 decimals
+         SD_tot_bacprod = round(SD_tot_bacprod, digits = 2) ) %>%      
+  dplyr::rename(norep_filter_name = names) %>%                  # Rename to match other data frame
+  arrange(norep_filter_name)
+
+# Put together a dataframe with metadata and production data
+meta_prod_dat <-
+  prod_data %>%
+  left_join(clr_metadata ,by = "norep_filter_name") %>%
+  mutate(names = Sample_16S) %>%
+  tibble::column_to_rownames(var = "names")
+
+###### FINAL PHYLOSEQ OBJECT
+prod_clr_physeq_orig <- subset_samples(clr_physeq, Sample_16S %in% meta_prod_dat$Sample_16S)
+# Overwrite the sample data to include productivity data
+prod_clr_physeq <- merge_phyloseq(otu_table(prod_clr_physeq_orig), tax_table(prod_clr_physeq_orig), sample_data(meta_prod_dat))
+prod_clr_physeq
+
+# Pull out the information and clean up the data
+prod_clr_otu <- otu_table(prod_clr_physeq)
+datOTUClr <- as.data.frame(prod_clr_otu)
+
+# Metadata 
+prod_clr_dat <- data.frame(sample_data(prod_clr_physeq))
+
+# Select only the numeric traits
+datContinuous <- 
+  prod_clr_dat %>%
+  dplyr::select(c(tot_bacprod, SD_tot_bacprod, Total.cells, Total.count.sd, 
+                  HNA.cells, HNA.sd, LNA.cells, LNA.sd, Total_Sequences))
+head(datContinuous)
+```
+
+
+## Data Cleaning 
+
+Below is an analysis to find out whether there are outliers. Thankfully, there are none!
+```{r clean-data, fig.height=9, fig.width=12}
+# Check for OTUs and samples with too many missing values
+good_otus <- goodSamplesGenes(datOTUClr, verbose = 3);
+good_otus$allOK
+
+# Search the data for outliers via clustering
+#sampleTree <- hclust(dist(datOTUClr), method = "average")
+#sampleTree
+
+# Plot it 
+#sizeGrWindow(12, 9) # Set plotting window to be 12 by 9 inches
+#par(cex = 1, mar = c(0,4,2,0))
+#plot(sampleTree, main = "Sample Clustering: No Outliers", 
+#     sub = "", xlab = "", cex.lab = 1.5, cex.axis = 1.5, cex.main = 2)
+
+# Clust contains the samples we want to keep
+paste("There are", ntaxa(prod_clr_physeq), "genes in the dataset.")
+paste("There are", nsamples(prod_clr_physeq), "samples in the dataset.")
+
+# Re-cluster samples
+sampleTree2 <- hclust(dist(datOTUClr), method = "average")
+
+# Convert traits to a color representation: white means low, red means high, grey means missing entry
+traitColors <- numbers2colors(datContinuous, signed = FALSE);
+
+# Plot the sample dendrogram and the colors underneath.
+plotDendroAndColors(sampleTree2, traitColors,
+                    groupLabels = names(datContinuous),
+                    main = "Sample dendrogram and trait heatmap")
+```
+
+**Figure:** Clustering dendrogram of samples based on their Euclidean distance.
+
+## Save the data
+```{r data-save}
+save(prod_clr_physeq, datOTUClr, datContinuous, file = "data/WGCNA/WGCNA_data.RData")
+```
+
+
+
+
+# Automatic network construction & Model Detection
+
+[Automatic Netrowk Construction Tutorial Here](https://horvath.genetics.ucla.edu/html/CoexpressionNetwork/Rpackages/WGCNA/Tutorials/FemaleLiver-02-networkConstr-auto.pdf)
+
+## Choosing the soft-thresholding power: analysis of network topology
+```{r soft-threshold, fig.width=9, fig.height=5}
+# Choose a set of soft-thresholding powers
+powers <- c(c(1:10), seq(from = 12, to=20, by=2))
+
+# Call the network topology analysis function
+sft <- pickSoftThreshold(datOTUClr, powerVector = powers, verbose = 5)
+
+# Plot the results:
+sizeGrWindow(9, 5)
+par(mfrow = c(1,2))
+
+# Set some parameters
+cex1 = 0.9
+
+# Scale-free topology fit index as a function of the soft-thresholding power
+plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2], 
+     xlab="Soft Threshold (power)",ylab="Scale Free Topology Model Fit,signed R^2",type="n", 
+     main = paste("Scale independence"))
+
+text(sft$fitIndices[,1], -sign(sft$fitIndices[,3]) * sft$fitIndices[,2],
+     labels=powers,cex=cex1,col="red")
+
+# this line corresponds to using an R^2 cut-off of h
+abline(h=0.90,col="red")
+
+# Mean connectivity as a function of the soft-thresholding power
+plot(sft$fitIndices[,1], sft$fitIndices[,5], 
+     xlab="Soft Threshold (power)",ylab="Mean Connectivity", type="n",
+     main = paste("Mean connectivity"))
+text(sft$fitIndices[,1], sft$fitIndices[,5], labels=powers, cex=cex1,col="red")
+```
+
+
+#### The soft threshold is 3!
+
+
+```{r adjacency-topoligical-overlap-matrix, fig.width=12, fig.height=9}
+# Turn adjacency into topological overlap matrix (TOM)
+adjacency <- adjacency(datOTUClr, power = 3)
+TOMadj <- TOMsimilarity(adjacency)
+dissTOMadj <- 1- TOMadj
+
+
+# Clustering using TOM
+# Call the hierarchical clustering function 
+hclustGeneTree <- hclust(as.dist(dissTOMadj), method = "average")
+
+# Plot the resulting clustering tree (dendogram)
+sizeGrWindow(12, 9)
+plot(hclustGeneTree, xlab = "", sub = "", 
+     main = "Gene Clustering on TOM-based disssimilarity", 
+     labels = FALSE, hang = 0.04)
+
+
+# Make the modules larger, so set the minimum higher
+minModuleSize <- 12
+
+# Module ID using dynamic tree cut
+dynamicMods <- cutreeDynamic(dendro = hclustGeneTree, 
+                             distM = dissTOMadj,
+                             deepSplit = 2, pamRespectsDendro = FALSE,
+                             minClusterSize = minModuleSize)
+table(dynamicMods)
+
+
+# Convert numeric lables into colors
+dynamicColors <- labels2colors(dynamicMods)
+table(dynamicColors)
+```
+
+```{r plot-dendo-underneath, fig.width=8, fig.width=6}
+# Plot the dendrogram and colors underneath
+sizeGrWindow(8,6)
+plotDendroAndColors(hclustGeneTree, dynamicColors, "Dynamic Tree Cut", 
+                    dendroLabels = FALSE, hang = 0.03, 
+                    addGuide = TRUE, guideHang = 0.05, 
+                    main = "Gene dendrogram and module colors")
+```
+
+```{r MM-hclust}
+# Calculate eigengenes
+dynamic_MEList <- moduleEigengenes(datOTUClr, colors = dynamicColors)
+dynamic_MEs <- dynamic_MEList$eigengenes
+
+# Calculate dissimilarity of module eigengenes
+dynamic_MEDiss <- 1-cor(dynamic_MEs)
+dynamic_METree <- hclust(as.dist(dynamic_MEDiss))
+# Plot the hclust
+sizeGrWindow(7,6)
+plot(dynamic_METree, main = "Dynamic Clustering of module eigengenes",
+     xlab = "", sub = "")
+```
+
+```{r dendo-merged, fig.width=12, fig.height=9}
+######################## MERGE SIMILAR MODULES
+dynamic_MEDissThres <- 0.25
+
+# Plot the cut line
+#abline(h = dynamic_MEDissThres, col = "red")
+
+# Call an automatic merging function
+merge_dynamic_MEDs <- mergeCloseModules(datOTUClr, dynamicColors, cutHeight = dynamic_MEDissThres, verbose = 3)
+
+# The Merged Colors
+dynamic_mergedColors <- merge_dynamic_MEDs$colors
+
+# Eigen genes of the new merged modules
+mergedMEs <- merge_dynamic_MEDs$newMEs
+mergedMEs
+
+table(dynamic_mergedColors)
+
+
+sizeGrWindow(12,9)
+plotDendroAndColors(hclustGeneTree, cbind(dynamicColors, dynamic_mergedColors),
+                    c("Dynamic Tree Cut", "Merged dynamic"),
+                      dendroLabels = FALSE, hang = 0.03,
+                      addGuide = TRUE, guideHang = 0.05)
+
+
+# Rename Module Colors 
+moduleColors <- dynamic_mergedColors
+
+# Construct numerical labels corresponding to the colors 
+colorOrder <- c("grey", standardColors(50))
+moduleLabels <- match(moduleColors, colorOrder)-1
+MEs <- mergedMEs
+
+save(MEs, moduleLabels, moduleColors, hclustGeneTree, file = "data/WGCNA/dynamic-prodOTU-02-networkConstruction.RData")
+
+```
+
+**Figure:** Clustering dendrogram of genes obtained in the single-block analysis, together with module
+colors determined in the single-block analysis and the module colors determined in the block-wise analysis. There is
+excellent agreement between the single-block and block-wise network construction and module detection.
+
+
+
+# Relating modules to environmental traits
+
+[Relating Modules to Traits Tutorial Here](https://horvath.genetics.ucla.edu/html/CoexpressionNetwork/Rpackages/WGCNA/Tutorials/FemaleLiver-03-relateModsToExt.pdf)
+
+
+## Quantifying module-trait associations
+```{r module-trait-associations, fig.width=10, fig.height=6}
+# define numbers of genes and samples
+nOTUs <- ncol(datOTUClr)
+nSamples <- nrow(datOTUClr)
+
+# Recalculate MEs with color labels
+MEs0 <- moduleEigengenes(datOTUClr, moduleColors)$eigengenes
+MEs <- orderMEs(MEs0)
+
+names(MEs) <- substring(names(MEs), 3)
+
+
+moduleTraitCor <- cor(MEs, datContinuous, use = "p")
+moduleTraitPvalue = corPvalueStudent(moduleTraitCor, nSamples)
+
+# PLOT
+sizeGrWindow(10,6)
+textMatrix <- paste(signif(moduleTraitCor, 2), "\n(", signif(moduleTraitPvalue, 1), ")", sep = "")
+dim(textMatrix) <- dim(moduleTraitCor)
+par(mar = c(6, 8.5, 3, 3))
+
+# Display the correlation values within a heatmap
+labeledHeatmap(Matrix = moduleTraitCor, 
+               xLabels = names(datContinuous),
+               yLabels = names(MEs), 
+               ySymbols = names(MEs), 
+               colorLabels = FALSE, 
+               colors = blueWhiteRed(50),
+               textMatrix = textMatrix, 
+               setStdMargins = FALSE,
+               cex.text = 0.5,
+               zlim = c(-1,1),
+               main = paste("Module-trait Relationships"))
+```
+
+**Figure:** Relationships of consensus module eignegenes and traits of samples collected from Muskegon Lake. Each row in the table corresponds to a consensus module (of OTUs), and each column is a trait. Numbers in the table report the correlations of the corresponding module eigengenes and traits, with a p-value printed below in parentheses. The table is color coded by correlation according to the legend. 
+
+
+We are interested in classifying the modules that are associated with bacterial production. So therefore, the trait of interest is _**tot_bacprod**_.
+
+From the plot above, we can see that the following modules as significantly (pvalues in the parentheses):  
+
+- Blue, correlation = -0.52 
+
+
+
+
+## OTU relationship to trait and important modules 
+
+### OTU significance and module membership
+
+**Goal:** Quantify associations of individual OTU with trait of interest (tot_bacprod)
+
+**How?**  
+
+  1. Define OTU significance (**GS**, _originally called gene significance_) as the absolute value of the correlation between the gene and the trait.  
+  2. For each module, also define a quantitative measure of module membership **(MM)** as the correlation of the module eigngene and the gene expression profile. *Allows us to quantify the similarity of all genes on the array to every module.*  
+  
+
+```{r module-membership}
+# Define variable weight containing the weight column of datTrait
+bacprod <- as.data.frame(datContinuous$tot_bacprod)
+names(bacprod) <- "bacprod" # rename
+
+# Names (colors of the modules
+#modNames <- substring(names(MEs), 3) # Remove the first two letters in string
+
+# Calculate the correlations between modules
+geneModuleMembership <- as.data.frame(WGCNA::cor(datOTUClr, MEs, use = "p"))
+
+# What are the p-values for each correlation?
+MMPvalue <- as.data.frame(corPvalueStudent(as.matrix(geneModuleMembership), nSamples))
+
+# What's the correlation for the trait: bacterial production?
+geneTraitSignificance <- as.data.frame(cor(datOTUClr, bacprod, use = "p"))
+
+# What are the p-values for each correlation?
+GSPvalue <- as.data.frame(corPvalueStudent(as.matrix(geneTraitSignificance), nSamples = nSamples))
+
+names(geneTraitSignificance) <- paste("GS.", names(bacprod), sep = "")
+names(GSPvalue) <- paste("p.GS.", names(bacprod), sep = "")
+```
+
+
+## Intramodular analysis: ID genes with high GS and MM
+
+Using GS and MM, let's identify genes with a high significance for bacterial production as well as high module membership in interesting modules. 
+
+
+```{r GS-MM-corr, fig.height=8, fig.width=12}
+# Fix the names so that they match the actual color
+#names(geneModuleMembership) <- substring(names(geneModuleMembership), 3) # Remove the first two letters in string
+
+modNames <- names(geneModuleMembership)
+
+par(mfrow = c(2,3))  
+  
+# Initialize for loop
+      # NEED: modNames
+for (i in names(geneModuleMembership)) {
+  
+  # Pull out the module we're working on
+  module <- i
+  print(module)   
+  
+  # Find the index in the column of the dataframe 
+  column <- match(module, modNames)
+  #print(column)
+  
+  # Pull out the Gene Significance vs module membership of the module
+  moduleGenes = moduleColors == module
+  vecOTUnames = rownames(geneTraitSignificance)
+  print(paste("There are ", length(vecOTUnames[moduleGenes]), " OTUs in the ", module, " module.", sep = ""))
+  print(vecOTUnames[moduleGenes])
+  
+  # Make the plot
+  verboseScatterplot(abs(geneModuleMembership[moduleGenes, column]), 
+                 abs(geneTraitSignificance[moduleGenes, 1]),
+                 xlab = paste("Module Membership in", module, "module"),
+                 ylab = "Gene significance for bacterial production",
+                 main = paste("Module membership vs. gene significnace \n"),
+                 cex.main = 1.2, cex.lab = 1.2, cex.axis = 1.2, col = module)
+}    
+```
+
+**Figure :** Above is a scatterplot Gene Significance (GS) for bacterial production vs. Module Membership (MM) in the each of the different modules. 
+
+Modules with a high & significant correlations:  
+
+  - Positive Correlations:  
+    - blue: cor = 0.64, p = 2.8e-08  
+    - brown: cor = 0.33, p = 0.043  
+    - turquoise: cor = 0.17, p = 0.0025  
+          
+
+```{r OTU-vectors}
+for (i in names(geneModuleMembership)) {
+  # Pull out the module we're working on
+  module <- i
+  # Find the index in the column of the dataframe 
+  column <- match(module, modNames)
+  # Pull out the Gene Significance vs module membership of the module
+  moduleGenes = moduleColors == module
+  vecOTUnames = rownames(geneTraitSignificance)
+  print(paste("There are ", length(vecOTUnames[moduleGenes]), " OTUs in the ", module, " module.", sep = ""))
+  
+  # NOTE: This makes hidden variables with the OTU names: brown_OTUs, yellow_OTUs
+  assign(paste(module, "_OTUs", sep = ""), vecOTUnames[moduleGenes])
+}   
+```
+
+
+
+## Summary output of network analysis
+
+From the plot above, it looks like the **blue module** has the largest positive correlation with bacterial production. 
+
+Which bacterial taxa make up this module? 
+
+We just identified modules with high association with the trait of interest (i.e. brown & red, but not magenta or midnightblue), now let's merge this information with gene annotation information and write out a file that summarizes the results. 
+
+```{r alldata}
+# Combine pval, taxonomy, module membership, and gene significance into one dataframe
+
+# Prepare pvalue df
+GSpval <- GSPvalue %>%
+  tibble::rownames_to_column(var = "OTU")
+
+# Prepare taxonomy df
+tax_df <- tax_table(prod_clr_physeq) %>%
+  data.frame() %>%
+  tibble::rownames_to_column(var = "OTU") %>%
+  rename(Domain = Rank1, Phylum = Rank2, Class = Rank3, Order = Rank4, Family = Rank5, Genus = Rank6, Species = Rank7)
+
+# Prepare module membership df
+# Modify column names
+#names(geneModuleMembership) <- substring(names(geneModuleMembership), 3)
+
+gMM_df <- geneModuleMembership %>%
+  tibble::rownames_to_column(var = "OTU") %>%
+  gather(key = "moduleColor", value = "moduleMemberCorr", -OTU) 
+
+# Prepare gene significance df
+GS_bacprod_df <- geneTraitSignificance %>%
+  data.frame() %>%
+  tibble::rownames_to_column(var = "OTU")
+
+# Put everything together 
+allData_df <- gMM_df %>%
+  left_join(GS_bacprod_df, by = "OTU") %>%
+  left_join(GSpval, by = "OTU") %>%
+  left_join(tax_df, by = "OTU")
+
+# Write a file 
+write.csv(allData_df, file = "data/WGCNA/allData_df_WGCNA.csv")
+```
+
+
+
+# Network visualization using WGCNA functions
+
+[Visualization Tutorial Here](https://horvath.genetics.ucla.edu/html/CoexpressionNetwork/Rpackages/WGCNA/Tutorials/FemaleLiver-05-Visualization.pdf)
+
+## Visualizing OTU netowrks
+
+```{r see-OTU-networks, fig.width=9, fig.height=9}
+# Calculate topological overlap. 
+# Calculate during module detection, but calculating again here:
+dissTOM <- 1-TOMsimilarityFromExpr(datOTUClr, power = 3) 
+
+# Transform with a power to make moderately strong connectsion more visible in the heatmap
+plotTOM <- dissTOM^7
+
+# Set diagnol to NA for a nicer plot
+diag(plotTOM) <- NA
+
+######################## ALL GENES - even though it looks like subsampling 
+nSelect = 482
+nGenes = ncol(datOTUClr)
+nSamples = nrow(datOTUClr)
+
+# For reproducibility, we set the random seed
+set.seed(10);
+select = sample(nGenes, size = nSelect);
+selectTOM = dissTOM[select, select];
+# There’s no simple way of restricting a clustering tree to a subset of genes, so we must re-cluster.
+selectTree = hclust(as.dist(selectTOM), method = "average")
+selectColors = moduleColors[select];
+# Open a graphical window
+sizeGrWindow(9,9)
+# Taking the dissimilarity to a power, say 10, makes the plot more informative by effectively changing
+# the color palette; setting the diagonal to NA also improves the clarity of the plot
+plotDiss = selectTOM^7;
+diag(plotDiss) = NA;
+TOMplot(plotDiss, selectTree, selectColors, main = "Network heatmap plot, selected genes")
+```
+
+**Figure:** Visualizing the OTU network using a heatmap plot. The heatmap depicts the Topological Overlap Matrix
+(TOM) among all OTUs in the analysis. Light color represents low overlap and progressively darker red color
+represents higher overlap. Blocks of darker colors along the diagonal are the modules. The gene dendrogram and
+module assignment are also shown along the left side and the top.
+
+## Visualizing the network of eigengenes
+
+```{r see-eigengenes}
+# Reclaculate module eigengenes
+#MEs = moduleEigengenes(datOTUClr, moduleColors)$eigengenes
+
+# Isolate weight from the clinical traits
+bacprod <- as.data.frame(datContinuous$tot_bacprod)
+names(bacprod) = "bacprod"
+
+# Add the weight to existing module eigengenes
+MET <- orderMEs(cbind(MEs, bacprod))
+#names(MET) <- substring(names(MET), 3)
+```
+
+
+```{r dendogram, fig.width=6, fig.height=6}
+# Plot the dendogram
+sizeGrWindow(6,6)
+par(cex = 1.0)
+plotEigengeneNetworks(MET, "Eigengene dendogram", marDendro = c(0,4,2,0),
+                      plotHeatmaps = FALSE)
+
+
+# Plot the heatmap 
+par(cex = 1.0)
+plotEigengeneNetworks(MET, "Eigengene adjacency heatmap", marHeatmap = c(3,4,2,2),
+                      plotDendograms = TRUE, xLabeles = 90)
+```
+
+**Figure:** Visualization of the eigengene network representing the relationships among the modules and bacterial production. Left panel shows a hierarchical clustering dendrogram of the eigengenes in which the dissimilarity of eigengenes EI , EJ is given by 1 − cor(EI , EJ ). The heatmap in the right panel shows the eigengene adjacency AIJ = (1 + cor(EI , EJ ))/2.
+
+
+# OTUs - Module Membership
+```{r OTUs-module, echo = TRUE}
+library(DT)
+
+# Module Membership
+mm_df <- geneModuleMembership %>%
+  tibble::rownames_to_column(var = "OTU") %>%
+  mutate(blue = round(abs(blue), digits = 3), 
+         green = round(abs(green), digits = 3),  
+         brown = round(abs(brown), digits = 3), 
+         turquoise = round(abs(turquoise), digits = 3),  
+         yellow = round(abs(yellow), digits = 3)) %>%
+  left_join(tax_df, by = "OTU")
+
+# OTUs from Final figure
+dplyr::filter(mm_df, OTU == "Otu000173") 
+dplyr::filter(mm_df, OTU == "Otu000029")
+
+
+# These OTUs should be in the blue modules:
+dplyr::filter(mm_df, OTU %in% blue_OTUs) %>%
+  datatable(options = list(pageLength = 10), caption = 'List of OTUs in blue module')
+
+# Green OTUs
+dplyr::filter(mm_df, OTU %in% green_OTUs) %>%
+  datatable(options = list(pageLength = 10), caption = 'List of OTUs in green module')
+
+# brown
+dplyr::filter(mm_df, OTU %in% brown_OTUs) %>%
+  datatable(options = list(pageLength = 10), caption = 'List of OTUs in brown module')
+
+# turquoise
+dplyr::filter(mm_df, OTU %in% turquoise_OTUs) %>%
+  datatable(options = list(pageLength = 10), caption = 'List of OTUs in turquoise module')
+
+# yellow
+dplyr::filter(mm_df, OTU %in% yellow_OTUs) %>%  
+  datatable(options = list(pageLength = 10), caption = 'List of OTUs in yellow module')
+```
+
+
+
+***
+
+
+
+
+```{r old, echo = FALSE, eval = FALSE}
+# How many OTUs in each color?
+table(net$colors)
+
+# Pull out only the green OTU
+green_OTUs <- names(net$colors[net$colors == "green"])
+length(green_OTUs)
+
+greenDF <- data.frame(green_OTUs) %>%
+  rename(OTU = green_OTUs) %>%
+  left_join(dplyr::filter(allData_df, moduleColor == "green"), by = "OTU") 
+
+# Show the data
+datatable(greenDF, options = list(pageLength = 10))
+
+```
+
+
+
+
+```{r module-detection, fig.height=9, fig.width=12, eval = FALSE, echo = FALSE}
+## One-step network construction & module detection
+
+# WARNING:
+    # When performing this function with your own data:
+        # you will NEED TO CHANGE THE PARAMETER OPTIONS
+        # Blocksize = maxBlockSize = tells the function how loarge the largest block can be that the reader's computer can handle. Default is 5,000 BUT this can break the later code. 
+
+net <- blockwiseModules(datOTUClr, TOMType = "unsigned", verbose = 3,
+                        reassignThreshold = 0, mergeCutHeight = 0.25,
+                        numeicLabels = TRUE, pamRespectsDendro = FALSE, saveTOMs = TRUE,
+                        
+                        # CHANGE THESE PARAMETERS!
+                        power = 3, deepSplit = 2, 
+                        maxBlockSize = 400, minModuleSize = 15,
+                        saveTOMFileBase = "data/WGCNA/prodOTU_TOM")
+
+# Can pull out information from object
+head(net$colors)
+head(net$MEs)
+
+#How many modules?
+length(unique(net$colors))
+table(net$colors)
+sum(table(net$colors))
+
+# You can see that there are a total of 7 modules and that now each module is named a color. The numbers under the colors tells you how many OTUs were sorted into that module. Each OTU is in exactly 1 module, and you can see that if you add up all of the numbers from the various modules you get 482 (the number of OTUs that we limited our analysis to above).
+```
+
+
+
+```{r module-detection2, fig.height=9, fig.width=12, eval = FALSE, echo = FALSE}
+# Save the data!
+moduleLabels <- net$colors
+moduleColors <- labels2colors(net$colors)
+MEs <- net$MEs;
+geneTree <- net$dendrograms[[1]];
+save(MEs, moduleLabels, moduleColors, geneTree, file = "prodOTU-02-networkConstruction-auto.RData")
+
+# open a graphics window
+sizeGrWindow(12, 9)
+
+# Convert labels to colors for plotting
+mergedColors <- labels2colors(net$colors)
+conTree <- net$dendrograms[[1]]
+
+# Plot the dendrogram and the module colors underneath
+plotDendroAndColors(dendro = net$dendrograms[[1]], 
+                    colors = mergedColors[net$blockGenes[[1]]],
+                    "Module colors",
+                    dendroLabels = NULL, hang = 0.03,
+                    addGuide = TRUE, guideHang = 0.05,
+                    main = "Consensus gene dendrogram and module colors")
+
+# ADVICE: See recutBlockwiseTrees function to modify the criteria without having to recomput the network and clustering dendogram.
+
+# **Figure:** Clustering dendrogram of genes, with dissimilarity based on topological overlap, together with assigned module colors.
+```
+
+
