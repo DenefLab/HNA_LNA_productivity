@@ -27,10 +27,8 @@ Please [click here for the code for Phylogenetic Signal](Analysis.html).
 ### Phylogenetic Tree Construction  
 The phylogenetic tree in Figure 5 was calculated using [fasttree](http://www.microbesonline.org/fasttree/) and was visualized in [iTOL](https://itol.embl.de/). Data files imported for tree construction can be found in [data/Figure5](data/Figure5).  
 
-## Other Code  
-Please [click here for the code for Figures 1, 4, and 5](Analysis.html).  
-
-Another approach to link OTUs to productivity through a [WGCNA analysis can be found here](WGCNA_analysis.html). 
+## Figures 1, 3, and 4
+Please [click here for the code for Figures 1, 3, and 4](Analysis.html).  
 
 ## Supplemental Information  
 The supplemental tables and figures can be found in [supplemental_info/](supplemental_info/).
